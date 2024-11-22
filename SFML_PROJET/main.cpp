@@ -9,7 +9,7 @@ int main() {
     sf::CircleShape shape(50); // Rayon de 50 pixels
     shape.setFillColor(sf::Color::Green);
 
-    sf::CircleShape shape2(100); // Rayon de 50 pixels
+    sf::CircleShape shape2(70); // Rayon de 50 pixels
     shape2.setFillColor(sf::Color::Yellow);
 
     // Boucle principale
