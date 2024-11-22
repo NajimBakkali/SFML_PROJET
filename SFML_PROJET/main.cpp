@@ -9,6 +9,9 @@ int main() {
     sf::CircleShape shape(50); // Rayon de 50 pixels
     shape.setFillColor(sf::Color::Green);
 
+    sf::CircleShape shape2(100); // Rayon de 50 pixels
+    shape2.setFillColor(sf::Color::Yellow);
+
     // Boucle principale
     while (window.isOpen()) {
         sf::Event event;
@@ -20,6 +23,7 @@ int main() {
         // Effacer la fenêtre
         window.clear();
         // Dessiner la forme
+        window.draw(shape2);
         window.draw(shape);
         // Afficher le contenu
         window.display();
