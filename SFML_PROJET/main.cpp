@@ -13,7 +13,7 @@ struct TailInstance {
     sf::Vector2f position;
     TailInstance* next;
 
-    TailInstance(sf::Vector2f position): position(position), next(nullptr) {}
+    TailInstance(sf::Vector2f position) : position(position), next(nullptr) {}
 };
 
 class Snake {
@@ -21,7 +21,7 @@ private:
     TailInstance* head;
     std::vector<TailInstance*> instances;
 public:
-    Snake(TailInstance* head): head(head) {}
+    Snake(TailInstance* head) : head(head) {}
     ~Snake() {
         for (auto instance : instances) {
             delete instance;
@@ -40,12 +40,13 @@ public:
     TailInstance* addTailInstance(sf::Vector2f position) {
         TailInstance* newTail = new TailInstance(position);
         instances.push_back(newTail);
-        
+
         int nextIndex = instances.size() - 1;
         std::cout << "size: " << instances.size() - 1 << std::endl;
         if (nextIndex <= 0) {
             newTail->next = head;
-        }else {
+        }
+        else {
             newTail->next = instances[nextIndex];
         }
         newTail->position = newTail->next->position;
@@ -64,7 +65,7 @@ public:
             tail.setFillColor(sf::Color::Green);
             tail.move(instance->position);
             window.draw(tail);
-            
+
         }
     }
 };
@@ -77,7 +78,7 @@ int main() {
 
 
     // Création du serpent
-    Snake snake(new TailInstance({20, 20}));
+    Snake snake(new TailInstance({ 20, 20 }));
 
     TailInstance* newTail = snake.addTailInstance(snake.getHeadPosition());
     TailInstance* newTail2 = snake.addTailInstance(newTail->position);
