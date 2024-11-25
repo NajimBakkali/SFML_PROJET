@@ -1,86 +1,258 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <thread>
-#include <vector>
+#include <deque>
+#include <ctime>
+
 using namespace std::literals::chrono_literals; //pour pouvoir ecrire Xs (x secondes)
 
-const int SNAKE_SPEED = 2;
+float snakeSpeed = 1.0f;
 
-const int SNAKE_SIZE = 20;
+const int CELL_SIZE = 60;
+const int CELL_COUNT = 12;
 
+sf::Sprite headSprite;
+sf::Texture headTexture;
 
-struct TailInstance {
-    sf::Vector2f position;
-    TailInstance* next;
+sf::Sprite tailSprite;
+sf::Texture tailTexture;
 
-    TailInstance(sf::Vector2f position): position(position), next(nullptr) {}
-};
+sf::Sprite tailSprite_2;
+sf::Texture tailTexture_2;
+
+sf::Sprite fruitSprite;
+sf::Texture fruitTexture;
+
+sf::Sprite boomSprite;
+sf::Texture boomTexture;
+
+void loadSprites() {
+    
+    //load head
+    if (!headTexture.loadFromFile("assets/sprites/RobotHead.png"))
+    {
+        std::cout << "couldn't load head texture" << std::endl;
+    }
+    headSprite.setTexture(headTexture);   
+    headSprite.setScale({ static_cast<float>(CELL_SIZE / headTexture.getSize().x), static_cast<float>(CELL_SIZE / headTexture.getSize().y) });
+
+    //load tail
+    if (!tailTexture.loadFromFile("assets/sprites/RobotTail4_2.png"))
+    {
+        std::cout << "couldn't load tail texture" << std::endl;
+    }
+    tailSprite.setTexture(tailTexture);
+    tailSprite.setScale({ static_cast<float>(CELL_SIZE / tailTexture.getSize().x), static_cast<float>(CELL_SIZE / tailTexture.getSize().y) });
+
+    //load end
+    if (!tailTexture_2.loadFromFile("assets/sprites/RobotTail5.png"))
+    {
+        std::cout << "couldn't load tail_2 texture" << std::endl;
+    }
+    tailSprite_2.setTexture(tailTexture_2);
+    tailSprite_2.setScale({ static_cast<float>(CELL_SIZE / tailTexture_2.getSize().x), static_cast<float>(CELL_SIZE / tailTexture_2.getSize().y) });
+
+    //load fruit
+    if (!fruitTexture.loadFromFile("assets/sprites/Fruit.png"))
+    {
+        std::cout << "couldn't load fruit texture" << std::endl;
+    }
+    fruitSprite.setTexture(fruitTexture);
+    fruitSprite.setScale({ static_cast<float>(CELL_SIZE / fruitTexture.getSize().x), static_cast<float>(CELL_SIZE / fruitTexture.getSize().y) });
+
+    //load explosion
+    if (!boomTexture.loadFromFile("assets/sprites/Explosion.png"))
+    {
+        std::cout << "couldn't load explosion texture" << std::endl;
+    }
+    boomSprite.setTexture(boomTexture);
+    boomSprite.setScale({ static_cast<float>(CELL_SIZE / boomTexture.getSize().x), static_cast<float>(CELL_SIZE / boomTexture.getSize().y) });
+}
+
+sf::Vector2f multiplyVectors(sf::Vector2f first, sf::Vector2f second)
+{
+    return { first.x * second.x , first.y * second.y };
+}
 
 class Snake {
-private:
-    TailInstance* head;
-    std::vector<TailInstance*> instances;
 public:
-    Snake(TailInstance* head): head(head) {}
-    ~Snake() {
-        for (auto instance : instances) {
-            delete instance;
+    std::deque<sf::Vector2f> body = { {2, 0}, {1, 0}, {0, 0} };
+    std::deque<int> rotation = { 90, 90, 90 };
+    bool gameOver = false;
+
+    void draw(sf::RenderWindow& window) 
+    {
+        for (unsigned int i = 0; i < body.size(); i++)
+        {
+            if (i == 0 && !gameOver) {
+                headSprite.setPosition(multiplyVectors(body[i], { CELL_SIZE, CELL_SIZE }));
+                headSprite.setOrigin((sf::Vector2f)headTexture.getSize() / 2.f);
+                headSprite.setRotation(rotation[i]);
+                window.draw(headSprite);
+            }
+           else if (i % 2 == 0) {
+                tailSprite_2.setPosition(multiplyVectors(body[i], { CELL_SIZE, CELL_SIZE }));
+                tailSprite_2.setOrigin((sf::Vector2f)tailTexture_2.getSize() / 2.f);
+                tailSprite_2.setRotation(rotation[i]);
+                window.draw(tailSprite_2);
+            }
+            else {
+                tailSprite.setPosition(multiplyVectors(body[i], { CELL_SIZE, CELL_SIZE }));
+                tailSprite.setOrigin((sf::Vector2f)tailTexture.getSize() / 2.f);
+                tailSprite.setRotation(rotation[i]);
+                window.draw(tailSprite);
+            }
         }
-        instances.clear();
     }
 
-    sf::Vector2f getHeadPosition() const {
-        return head->position;
+    void updatePosition(sf::Vector2f direction, int orientation) {
+        body.pop_back();
+        body.push_front(direction);
+
+        rotation.pop_back();
+        rotation.push_front(orientation);
     }
 
-    TailInstance* getHead() const {
-        return head;
+    void grow() 
+    {
+        body.push_back(body[body.size() - 1]);
+    }
+};
+
+class Fruit {
+public:
+    sf::Vector2f position;
+
+    void draw(sf::RenderWindow& window)
+    {
+        fruitSprite.setPosition(multiplyVectors(position, { CELL_SIZE, CELL_SIZE }));
+        fruitSprite.setOrigin((sf::Vector2f)fruitTexture.getSize() / 2.f);
+        window.draw(fruitSprite);
+    }
+};
+
+class Game {
+public:
+    Snake snake;
+    Fruit fruit;
+    bool gameOver;
+
+    Game(): gameOver(false) { fruit.position = { 5, 5 }; }
+
+    void draw(sf::RenderWindow& window) {
+        snake.draw(window);
+        fruit.draw(window);
+        window.display();
     }
 
-    TailInstance* addTailInstance(sf::Vector2f position) {
-        TailInstance* newTail = new TailInstance(position);
-        instances.push_back(newTail);
+    void update(sf::Vector2f direction, int orientation) {
+        snake.updatePosition({ snake.body[0].x + (1 * direction.x)
+                    , snake.body[0].y + (1 * direction.y) }, orientation);
+
+        if (checkCollision(fruit)) {
+            snake.grow();
+            spawnFruit();
+            std::cout << "Collided" << std::endl;
+            //snakeSpeed += .05f;
+        }
+        else if (checkCollision(snake)) {
+            std::cout << "game over!" << std::endl;
+            gameOver = true;
+            snake.gameOver = true;
+        }
+    }
+
+    void death(sf::RenderWindow& window) {
         
-        int nextIndex = instances.size() - 1;
-        std::cout << "size: " << instances.size() - 1 << std::endl;
-        if (nextIndex <= 0) {
-            newTail->next = head;
-        }else {
-            newTail->next = instances[nextIndex];
-        }
-        newTail->position = newTail->next->position;
+        int bodySize = snake.body.size();
+        for (unsigned int i = 0; i < bodySize; i++)
+        {
+          window.clear();
+          std::cout << "BOOM!" << std::endl;
+          
+          boomSprite.setPosition(multiplyVectors(snake.body[i], { CELL_SIZE, CELL_SIZE }));
+          boomSprite.setOrigin((sf::Vector2f)boomTexture.getSize() / 2.f);
+          window.draw(boomSprite);
 
-        return newTail;
-    }
+          snake.body[i] = { -100*CELL_SIZE,-100 * CELL_SIZE }; //put out of bound
+          //snake.body.pop_front();
+          snake.draw(window);
 
-    void drawTail(sf::RenderWindow& window) {
-        sf::RectangleShape headRectangle({ SNAKE_SIZE, SNAKE_SIZE });
-        headRectangle.setFillColor(sf::Color::Green);
-        headRectangle.move(head->position);
-
-        for (auto instance : instances) {
-            instance->position = instance->next->position;
-            sf::RectangleShape tail({ SNAKE_SIZE, SNAKE_SIZE });
-            tail.setFillColor(sf::Color::Green);
-            tail.move(instance->position);
-            window.draw(tail);
-            
+          window.display();
+          std::this_thread::sleep_for(.75s / bodySize);
         }
     }
+
+    void spawnFruit() {
+        int x = rand() % CELL_COUNT;
+        int y = rand() % CELL_COUNT;
+
+        //check if it is not occupied by snake
+        for (unsigned int i = 0; i < snake.body.size(); i++) {
+            if (snake.body[i].x == x && snake.body[i].y == y) {
+                std::cout << "respawn" << std::endl;
+                spawnFruit();
+                return;
+            }
+        }
+
+        fruit.position.x = x; fruit.position.y = y;
+    }
+
+    bool checkCollision(Fruit& fruit) //check fruit collision
+    {
+        return snake.body[0] == fruit.position;
+    }
+
+    bool checkCollision(Snake& snake) //check tail collision
+    {
+        if (snake.body.size() <= 0) return false;
+        for (unsigned int i = 1; i < snake.body.size(); i++) {
+            //std::cout << snake.body[0].x << " " << snake.body[0].y << " || " << snake.body[i].y << " " << snake.body[i].y << std::endl;
+            if (snake.body[0] == snake.body[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void drawGrid(sf::RenderWindow& window) {
+        int count = 0;
+        for (int x = 0; x < CELL_COUNT; x++)
+        {
+            for (int y = 0; y < CELL_COUNT; y++)
+            {
+                sf::RectangleShape tile({ CELL_SIZE, CELL_SIZE });
+                tile.setPosition({ static_cast<float>(x * CELL_SIZE), static_cast<float>(y * CELL_SIZE) });
+                tile.setOrigin(sf::Vector2f{ CELL_SIZE, CELL_SIZE } / 2.f);
+
+                if (count % 2 == 0) {
+                    tile.setFillColor(sf::Color(0x525065));
+                }
+                else {
+                    tile.setFillColor(sf::Color(0x424052));
+                }
+                window.draw(tile);
+                count++;
+            }
+            count++;
+        }
+    }
+
 };
 
 int main() {
+    srand(time(NULL)); //set seed
+
     // Création de la fenêtre
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Fenêtre SFML");
+    sf::RenderWindow window(sf::VideoMode(CELL_SIZE * CELL_COUNT, CELL_SIZE * CELL_COUNT), "Fenêtre SFML");
 
     sf::Vector2f direction = { 1, 0 };
+    int orientation = 90;
+    sf::Vector2f negativeDirection = { -1, -1 };
 
-
-    // Création du serpent
-    Snake snake(new TailInstance({20, 20}));
-
-    TailInstance* newTail = snake.addTailInstance(snake.getHeadPosition());
-    TailInstance* newTail2 = snake.addTailInstance(newTail->position);
+    Game game;
+    loadSprites();
 
     // Boucle principale
     while (window.isOpen()) {
@@ -91,28 +263,28 @@ int main() {
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                 case(sf::Keyboard::Up):
-                    direction = { 0, -1 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, -1 }) { direction = { 0, -1 }; orientation = 0;}
                     break;
                 case(sf::Keyboard::Down):
-                    direction = { 0, 1 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, 1 }) { direction = { 0, 1 }; orientation = 180;}
                     break;
                 case(sf::Keyboard::Left):
-                    direction = { -1, 0 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ -1, 0 }) { direction = { -1, 0 }; orientation = -90;}
                     break;
                 case(sf::Keyboard::Right):
-                    direction = { 1, 0 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 1, 0 }) { direction = { 1, 0 }; orientation = 90;}
                     break;
                 }
             }
         }
-        std::cout << snake.getHeadPosition().x << " " << snake.getHeadPosition().y << std::endl;
-        snake.getHead()->position = { snake.getHeadPosition().x + direction.x * SNAKE_SIZE
-                            , snake.getHeadPosition().y + direction.y * SNAKE_SIZE };
+       
+        game.drawGrid(window);
 
-        snake.drawTail(window);
+        game.update(direction, orientation);
+        game.draw(window);
 
-        window.display();
-        std::this_thread::sleep_for(.25s / SNAKE_SPEED);
+        if (game.gameOver) { game.death(window);  window.clear(); window.display(); std::this_thread::sleep_for(1s); break; }
+        std::this_thread::sleep_for(.25s / snakeSpeed);
         window.clear();
     }
 
