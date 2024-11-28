@@ -69,7 +69,7 @@ void loadSprites() {
     tailSprite_2.setScale({ static_cast<float>(CELL_SIZE / tailTexture_2.getSize().x), static_cast<float>(CELL_SIZE / tailTexture_2.getSize().y) });
 
     //load fruit
-    if (!fruitTexture.loadFromFile("assets/sprites/Fruit.png"))
+    if (!fruitTexture.loadFromFile("assets/sprites/Bolt.png"))
     {
         std::cout << "couldn't load fruit texture" << std::endl;
     }
@@ -497,23 +497,23 @@ int main() {
             if (event.type == sf::Event::KeyPressed && !game.onMenu) {
                 switch (event.key.code) {
                 case(sf::Keyboard::Up):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, -1 }) { direction = { 0, -1 }; orientation = 0; 
-                    soundSnakeMove.play();
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, -1 } && orientation != 0)
+                    { direction = { 0, -1 }; orientation = 0; soundSnakeMove.play();
                     }
                     break;
                 case(sf::Keyboard::Down):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, 1 }) { direction = { 0, 1 }; orientation = 180; 
-                    soundSnakeMove.play();
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, 1 } && orientation != 180)
+                    { direction = { 0, 1 }; orientation = 180; soundSnakeMove.play();
                     }
                     break;
                 case(sf::Keyboard::Left):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ -1, 0 }) { direction = { -1, 0 }; orientation = -90; 
-                    soundSnakeMove.play();
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ -1, 0 } && orientation != -90)
+                    { direction = { -1, 0 }; orientation = -90; soundSnakeMove.play();
                     }
                     break;
                 case(sf::Keyboard::Right):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 1, 0 }) { direction = { 1, 0 }; orientation = 90; 
-                    soundSnakeMove.play();
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 1, 0 } && orientation != 90)
+                    { direction = { 1, 0 }; orientation = 90; soundSnakeMove.play();
                     }
                     break;
                 }
