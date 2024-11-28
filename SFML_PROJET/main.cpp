@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <iostream>
 #include <thread>
 #include <deque>
@@ -13,6 +14,18 @@ const int CELL_COUNT = 12;
 
 int score = 0;
 int bestScore = 0;
+
+sf::SoundBuffer loopBuffer;
+sf::Sound musicLoop;
+
+sf::SoundBuffer snakeMoveBuffer;
+sf::Sound soundSnakeMove;
+
+sf::SoundBuffer collectBuffer;
+sf::Sound soundCollect;
+
+sf::SoundBuffer gameOverBuffer;
+sf::Sound musicGameOver;
 
 sf::Sprite headSprite;
 sf::Texture headTexture;
@@ -70,6 +83,32 @@ void loadSprites() {
     }
     boomSprite.setTexture(boomTexture);
     boomSprite.setScale({ static_cast<float>(CELL_SIZE / boomTexture.getSize().x), static_cast<float>(CELL_SIZE / boomTexture.getSize().y) });
+}
+
+
+void loadMusics() 
+{
+    
+    if (!loopBuffer.loadFromFile("assets/musics/GameLoop.wav")) {
+        std::cout << "Couldn't load game loop music" << std::endl;
+    }
+    musicLoop.setBuffer(loopBuffer);
+    musicLoop.setLoop(true);
+
+    if (!gameOverBuffer.loadFromFile("assets/musics/GameOver.wav")) {
+        std::cout << "Couldn't load game over music" << std::endl;
+    }
+    musicGameOver.setBuffer(gameOverBuffer);
+
+    if (!snakeMoveBuffer.loadFromFile("assets/musics/SnakeMove.wav")) {
+        std::cout << "Couldn't load snake sound" << std::endl;
+    }
+    soundSnakeMove.setBuffer(snakeMoveBuffer);
+
+    if (!collectBuffer.loadFromFile("assets/musics/Collect.wav")) {
+        std::cout << "Couldn't load collect sound" << std::endl;
+    }
+    soundCollect.setBuffer(collectBuffer);
 }
 
 sf::Vector2f multiplyVectors(sf::Vector2f first, sf::Vector2f second)
@@ -174,7 +213,7 @@ public:
         else {
             sf::Text* text = createText();
 
-            text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
+           // text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
 
             text->setString("Score: " + std::to_string(score));
             text->setCharacterSize(24);
@@ -193,7 +232,7 @@ public:
         else {
             sf::Text* bestText = createText();
 
-            bestText->setOrigin(bestText->getLocalBounds().width / 2, bestText->getLocalBounds().height / 2);
+            //bestText->setOrigin(bestText->getLocalBounds().width / 2, bestText->getLocalBounds().height / 2);
 
             bestText->setString("Best Score: " + std::to_string(bestScore));
             bestText->setCharacterSize(24);
@@ -281,6 +320,7 @@ public:
             snake.grow();
             spawnFruit();
             updateScore();
+            soundCollect.play();
             std::cout << "Collided" << std::endl;
             //snakeSpeed += .05f;
         }
@@ -323,8 +363,10 @@ public:
         {
             gameOverText->setString("GAME OVER");
 
-            gameOverText->setPosition({ static_cast<float>((window.getSize().x - gameOverText->getLocalBounds().width) / 2),
-            static_cast<float>((window.getSize().y - gameOverText->getLocalBounds().height) / 2) });
+            gameOverText->setPosition({ static_cast<float>((window.getSize().x - gameOverText->getLocalBounds().width) / 2)
+                                       ,static_cast<float>((window.getSize().x - gameOverText->getLocalBounds().height) / 3) });
+            //gameOverText->setPosition({ static_cast<float>((window.getSize().x - gameOverText->getLocalBounds().width) / 2),
+            //static_cast<float>((window.getSize().y - gameOverText->getLocalBounds().height) / 2) });
         }
         else
         {
@@ -332,19 +374,25 @@ public:
 
             text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
 
+            text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
             text->setString("GAME OVER");
             text->setCharacterSize(64);
             text->setFillColor(sf::Color::Red);
 
-            text->setPosition({ static_cast<float>((window.getSize().x + text->getLocalBounds().width) / 6),
-                static_cast<float>((window.getSize().y - text->getLocalBounds().height) / 2) });
+            text->setPosition({ static_cast<float>((window.getSize().x - text->getLocalBounds().width) / 2)
+                           ,static_cast<float>((window.getSize().x - text->getLocalBounds().height) / 3) });
+
+           // text->setPosition({ static_cast<float>((window.getSize().x + text->getLocalBounds().width) / 6),
+           //     static_cast<float>((window.getSize().y - text->getLocalBounds().height) / 2) });
 
             gameOverText = text;
 
         }
 
-        scoreText->setPosition({ gameOverText->getLocalBounds().getPosition().x + window.getSize().x / 2.8f
-                                ,gameOverText->getPosition().y + window.getSize().y / 4 });
+       // scoreText->setPosition({ gameOverText->getLocalBounds().getPosition().x + window.getSize().x / 2.8f
+         //                       ,gameOverText->getPosition().y + window.getSize().y / 4 });
+
+
 
         if (score > bestScore)
         {
@@ -354,6 +402,9 @@ public:
         {
             scoreText->setString("FINAL SCORE: " + std::to_string(score));
         }
+
+        scoreText->setPosition({ static_cast<float>((window.getSize().x - scoreText->getLocalBounds().width) / 2)
+            ,static_cast<float>((window.getSize().x - scoreText->getLocalBounds().height) / 1.5) });
 
         scoreText->setFillColor(sf::Color::Red);
 
@@ -428,6 +479,7 @@ int main() {
 
     Game game;
     loadSprites();
+    loadMusics();
 
     sf::Vector2f direction = { 1, 0 };
     int orientation = 90;
@@ -445,16 +497,24 @@ int main() {
             if (event.type == sf::Event::KeyPressed && !game.onMenu) {
                 switch (event.key.code) {
                 case(sf::Keyboard::Up):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, -1 }) { direction = { 0, -1 }; orientation = 0; }
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, -1 }) { direction = { 0, -1 }; orientation = 0; 
+                    soundSnakeMove.play();
+                    }
                     break;
                 case(sf::Keyboard::Down):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, 1 }) { direction = { 0, 1 }; orientation = 180; }
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, 1 }) { direction = { 0, 1 }; orientation = 180; 
+                    soundSnakeMove.play();
+                    }
                     break;
                 case(sf::Keyboard::Left):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ -1, 0 }) { direction = { -1, 0 }; orientation = -90; }
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ -1, 0 }) { direction = { -1, 0 }; orientation = -90; 
+                    soundSnakeMove.play();
+                    }
                     break;
                 case(sf::Keyboard::Right):
-                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 1, 0 }) { direction = { 1, 0 }; orientation = 90; }
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 1, 0 }) { direction = { 1, 0 }; orientation = 90; 
+                    soundSnakeMove.play();
+                    }
                     break;
                 }
             }
@@ -467,6 +527,7 @@ int main() {
                     {
                         if (game.playButton->getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) //check if mouse is on text
                         {
+                            musicLoop.play();
                             game.onMenu = false;
                         }
                     }
@@ -494,6 +555,8 @@ int main() {
 
             //game over check
             if (game.gameOver) {
+                musicLoop.stop();
+                musicGameOver.play();
                 game.death(window);   window.clear(); window.display();
                 game.gameOverScreen(window);
                 std::this_thread::sleep_for(2s);
