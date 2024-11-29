@@ -86,9 +86,9 @@ void loadSprites() {
 }
 
 
-void loadMusics() 
+void loadMusics()
 {
-    
+
     if (!loopBuffer.loadFromFile("assets/musics/GameLoop.wav")) {
         std::cout << "Couldn't load game loop music" << std::endl;
     }
@@ -186,20 +186,232 @@ public:
 
 class Game {
 public:
-    Snake(TailInstance* head): head(head) {}
-    ~Snake() {
-        for (auto instance : instances) {
-            delete instance;
+    Snake snake;
+    Fruit fruit;
+    bool gameOver;
+    bool onMenu;
+
+    sf::Text* playButton;
+    sf::Text* titleText;
+    sf::Text* scoreText;
+    sf::Text* bestScoreText;
+    sf::Text* gameOverText;
+
+    Game() : gameOver(false), onMenu(true), playButton(nullptr), titleText(nullptr), scoreText(nullptr), bestScoreText(nullptr), gameOverText(nullptr)
+    {
+        fruit.position = { 5, 5 };
+    }
+
+    void writeScore(sf::RenderWindow& window) {
+
+        if (scoreText) {
+            scoreText->setString("Score: " + std::to_string(score));
+            scoreText->setPosition({ static_cast<float>((window.getSize().x - scoreText->getLocalBounds().width) / 4), 0 });
+
+            scoreText->setFillColor(sf::Color::White);
         }
-        instances.clear();
+        else {
+            sf::Text* text = createText();
+
+            // text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
+
+            text->setString("Score: " + std::to_string(score));
+            text->setCharacterSize(24);
+            text->setFillColor(sf::Color::White);
+            text->setOutlineColor(sf::Color::Black);
+            text->setOutlineThickness(2);
+            text->setPosition({ static_cast<float>((window.getSize().x - text->getLocalBounds().width) / 4), 0 });
+
+            scoreText = text;
+        }
+
+        if (bestScoreText) {
+            bestScoreText->setString("Best Score: " + std::to_string(bestScore));
+            bestScoreText->setPosition({ static_cast<float>((window.getSize().x - bestScoreText->getLocalBounds().width) / 4) * 3, 0 });
+        }
+        else {
+            sf::Text* bestText = createText();
+
+            //bestText->setOrigin(bestText->getLocalBounds().width / 2, bestText->getLocalBounds().height / 2);
+
+            bestText->setString("Best Score: " + std::to_string(bestScore));
+            bestText->setCharacterSize(24);
+            bestText->setFillColor(sf::Color::White);
+            bestText->setOutlineColor(sf::Color::Black);
+            bestText->setOutlineThickness(2);
+            bestText->setPosition({ static_cast<float>((window.getSize().x - bestText->getLocalBounds().width) / 4) * 3, 0 });
+
+            bestScoreText = bestText;
+        }
+
+        window.draw(*scoreText);
+        window.draw(*bestScoreText);
     }
 
-    sf::Vector2f getHeadPosition() const {
-        return head->position;
+    void menuScreen(sf::RenderWindow& window) {
+
+        if (titleText) {
+            titleText->setPosition({ static_cast<float>((window.getSize().x - titleText->getLocalBounds().width) / 2)
+                    ,static_cast<float>((window.getSize().x - titleText->getLocalBounds().height) / 3) });
+        }
+        else {
+            sf::Text* title = createText();
+            title->setString("ROBO-SNAKE");
+            title->setCharacterSize(64);
+            title->setFillColor(sf::Color(125, 125, 125));
+
+            title->setPosition({ static_cast<float>((window.getSize().x - title->getLocalBounds().width) / 2)
+                                ,static_cast<float>((window.getSize().x - title->getLocalBounds().height) / 3) });
+
+            titleText = title;
+        }
+
+
+        if (playButton)
+        {
+            playButton->setPosition({ static_cast<float>((window.getSize().x - playButton->getLocalBounds().width) / 2)
+                    ,static_cast<float>((window.getSize().x - playButton->getLocalBounds().height) / 1.5) });
+        }
+        else
+        {
+            sf::Text* button = createText();
+            button->setString("PLAY");
+            button->setCharacterSize(64);
+            button->setFillColor(sf::Color::Green);
+
+            button->setPosition({ static_cast<float>((window.getSize().x - button->getLocalBounds().width) / 2)
+                                ,static_cast<float>((window.getSize().x - button->getLocalBounds().height) / 1.5) });
+
+            playButton = button;
+        }
+
+        window.draw(*playButton);
+        window.draw(*titleText);
+        window.display();
     }
 
-    TailInstance* getHead() const {
-        return head;
+    void draw(sf::RenderWindow& window) {
+        snake.draw(window);
+        fruit.draw(window);
+        writeScore(window);
+
+        window.display();
+    }
+
+    void updateScore() {
+        score++;
+    }
+
+    void update(sf::Vector2f direction, int orientation) {
+
+        sf::Vector2f newBodyPosition = { snake.body[0].x + (1 * direction.x), snake.body[0].y + (1 * direction.y) };
+        snake.updatePosition(newBodyPosition, orientation);
+
+        if ((snake.body[0].x < 0 || snake.body[0].x >= CELL_COUNT) || (snake.body[0].y < 0 || snake.body[0].y >= CELL_COUNT))
+        {
+            std::cout << "game over!" << std::endl;
+            gameOver = true;
+            snake.gameOver = true;
+            snake.body.pop_front();
+            return;
+        }
+
+        if (checkCollision(fruit)) {
+            snake.grow();
+            spawnFruit();
+            updateScore();
+            soundCollect.play();
+            std::cout << "Collided" << std::endl;
+            //snakeSpeed += .05f;
+        }
+        else if (checkCollision(snake)) {
+            std::cout << "game over!" << std::endl;
+            gameOver = true;
+            snake.gameOver = true;
+            snake.body.pop_front();
+        }
+    }
+
+    void death(sf::RenderWindow& window) {
+
+        int bodySize = snake.body.size();
+        for (unsigned int i = 0; i < bodySize; i++)
+        {
+            window.clear();
+            drawGrid(window);
+            std::cout << "BOOM!" << std::endl;
+
+            boomSprite.setPosition(multiplyVectors(snake.body[i], { CELL_SIZE, CELL_SIZE }) + sf::Vector2f{ CELL_SIZE / 2 , CELL_SIZE / 2 });
+            boomSprite.setOrigin((sf::Vector2f)boomTexture.getSize() / 2.f);
+            window.draw(boomSprite);
+
+            snake.body[i] = { -999 * CELL_SIZE,-999 * CELL_SIZE }; //put out of bound
+
+            //snake.body.pop_front();
+            snake.draw(window);
+
+            window.display();
+            std::this_thread::sleep_for(.75s / bodySize);
+        }
+    }
+
+    void gameOverScreen(sf::RenderWindow& window) {
+        window.clear();
+
+
+        if (gameOverText)
+        {
+            gameOverText->setString("GAME OVER");
+
+            gameOverText->setPosition({ static_cast<float>((window.getSize().x - gameOverText->getLocalBounds().width) / 2)
+                                       ,static_cast<float>((window.getSize().x - gameOverText->getLocalBounds().height) / 3) });
+            //gameOverText->setPosition({ static_cast<float>((window.getSize().x - gameOverText->getLocalBounds().width) / 2),
+            //static_cast<float>((window.getSize().y - gameOverText->getLocalBounds().height) / 2) });
+        }
+        else
+        {
+            sf::Text* text = createText();
+
+            text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
+
+            text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
+            text->setString("GAME OVER");
+            text->setCharacterSize(64);
+            text->setFillColor(sf::Color::Red);
+
+            text->setPosition({ static_cast<float>((window.getSize().x - text->getLocalBounds().width) / 2)
+                           ,static_cast<float>((window.getSize().x - text->getLocalBounds().height) / 3) });
+
+            // text->setPosition({ static_cast<float>((window.getSize().x + text->getLocalBounds().width) / 6),
+            //     static_cast<float>((window.getSize().y - text->getLocalBounds().height) / 2) });
+
+            gameOverText = text;
+
+        }
+
+        // scoreText->setPosition({ gameOverText->getLocalBounds().getPosition().x + window.getSize().x / 2.8f
+          //                       ,gameOverText->getPosition().y + window.getSize().y / 4 });
+
+
+
+        if (score > bestScore)
+        {
+            scoreText->setString("NEW BEST SCORE: " + std::to_string(score));
+        }
+        else
+        {
+            scoreText->setString("FINAL SCORE: " + std::to_string(score));
+        }
+
+        scoreText->setPosition({ static_cast<float>((window.getSize().x - scoreText->getLocalBounds().width) / 2)
+            ,static_cast<float>((window.getSize().x - scoreText->getLocalBounds().height) / 1.5) });
+
+        scoreText->setFillColor(sf::Color::Red);
+
+        window.draw(*gameOverText);
+        window.draw(*scoreText);
+        //window.draw(*bestScoreText);
+        window.display();
     }
 
     void spawnFruit() {
@@ -262,8 +474,12 @@ public:
 int main() {
     srand(time(NULL)); //set seed
 
-    // Création de la fenêtre
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Fenêtre SFML");
+    // Cr?ation de la fen?tre
+    sf::RenderWindow window(sf::VideoMode(CELL_SIZE * CELL_COUNT, CELL_SIZE * CELL_COUNT), "Fen?tre SFML");
+
+    Game game;
+    loadSprites();
+    loadMusics();
 
     sf::Vector2f direction = { 1, 0 };
     int orientation = 90;
@@ -276,28 +492,88 @@ int main() {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
-                window.close(); // Fermer la fenêtre
+                window.close(); // Fermer la fen?tre
 
             if (event.type == sf::Event::KeyPressed && !game.onMenu) {
                 switch (event.key.code) {
                 case(sf::Keyboard::Up):
-                    direction = { 0, -1 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, -1 } && orientation != 0)
+                    {
+                        direction = { 0, -1 }; orientation = 0; soundSnakeMove.play();
+                    }
                     break;
                 case(sf::Keyboard::Down):
-                    direction = { 0, 1 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, 1 } && orientation != 180)
+                    {
+                        direction = { 0, 1 }; orientation = 180; soundSnakeMove.play();
+                    }
                     break;
                 case(sf::Keyboard::Left):
-                    direction = { -1, 0 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ -1, 0 } && orientation != -90)
+                    {
+                        direction = { -1, 0 }; orientation = -90; soundSnakeMove.play();
+                    }
                     break;
                 case(sf::Keyboard::Right):
-                    direction = { 1, 0 };
+                    if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 1, 0 } && orientation != 90)
+                    {
+                        direction = { 1, 0 }; orientation = 90; soundSnakeMove.play();
+                    }
                     break;
                 }
             }
+
+            if (event.type == sf::Event::MouseButtonPressed)
+            {
+                if (event.key.code == sf::Mouse::Left)
+                {
+                    if (game.playButton != nullptr)
+                    {
+                        if (game.playButton->getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) //check if mouse is on text
+                        {
+                            musicLoop.play();
+                            game.onMenu = false;
+                        }
+                    }
+                }
+            }
         }
-        std::cout << snake.getHeadPosition().x << " " << snake.getHeadPosition().y << std::endl;
-        snake.getHead()->position = { snake.getHeadPosition().x + direction.x * SNAKE_SIZE
-                            , snake.getHeadPosition().y + direction.y * SNAKE_SIZE };
+
+        window.clear();
+
+        if (game.onMenu) {
+            if (game.playButton->getGlobalBounds().contains(static_cast<sf::Vector2f>(sf::Mouse::getPosition(window)))) {
+                // Appliquer un effet (changer la couleur du texte par exemple)
+                game.playButton->setFillColor(sf::Color::Green);
+            }
+            else {
+                // R?initialiser la couleur du texte
+                game.playButton->setFillColor(sf::Color(0, 100, 0));
+            }
+            game.menuScreen(window);
+        }
+        else
+        {
+            game.drawGrid(window);
+            game.update(direction, orientation);
+
+            //game over check
+            if (game.gameOver) {
+                musicLoop.stop();
+                musicGameOver.play();
+                game.death(window);   window.clear(); window.display();
+                game.gameOverScreen(window);
+                std::this_thread::sleep_for(2s);
+
+                //reset everything
+                game.onMenu = true;
+                game.gameOver = false;
+                game.snake.gameOver = false;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                }
+                score = 0;
 
                 direction = { 1, 0 };
                 orientation = 90;
@@ -315,6 +591,5 @@ int main() {
 
     return 0;
 }
-
 
 
