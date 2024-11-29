@@ -8,6 +8,7 @@
 using namespace std::literals::chrono_literals; //pour pouvoir ecrire Xs (x secondes)
 
 float snakeSpeed = 1.0f;
+bool moveOnCooldown = false;
 
 const int CELL_SIZE = 60;
 const int CELL_COUNT = 12;
@@ -494,30 +495,30 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close(); // Fermer la fen?tre
 
-            if (event.type == sf::Event::KeyPressed && !game.onMenu) {
+            if (event.type == sf::Event::KeyPressed && !game.onMenu && !moveOnCooldown) {
                 switch (event.key.code) {
                 case(sf::Keyboard::Up):
                     if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, -1 } && orientation != 0)
                     {
-                        direction = { 0, -1 }; orientation = 0; soundSnakeMove.play();
+                        direction = { 0, -1 }; orientation = 0; soundSnakeMove.play(); moveOnCooldown = true;
                     }
                     break;
                 case(sf::Keyboard::Down):
                     if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 0, 1 } && orientation != 180)
                     {
-                        direction = { 0, 1 }; orientation = 180; soundSnakeMove.play();
+                        direction = { 0, 1 }; orientation = 180; soundSnakeMove.play(); moveOnCooldown = true;
                     }
                     break;
                 case(sf::Keyboard::Left):
                     if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ -1, 0 } && orientation != -90)
                     {
-                        direction = { -1, 0 }; orientation = -90; soundSnakeMove.play();
+                        direction = { -1, 0 }; orientation = -90; soundSnakeMove.play(); moveOnCooldown = true;
                     }
                     break;
                 case(sf::Keyboard::Right):
                     if (multiplyVectors(direction, negativeDirection) != sf::Vector2f{ 1, 0 } && orientation != 90)
                     {
-                        direction = { 1, 0 }; orientation = 90; soundSnakeMove.play();
+                        direction = { 1, 0 }; orientation = 90; soundSnakeMove.play(); moveOnCooldown = true;
                     }
                     break;
                 }
@@ -585,6 +586,7 @@ int main() {
             else {
                 game.draw(window);
                 std::this_thread::sleep_for(.25s / snakeSpeed);
+                moveOnCooldown = false;
             }
         }
     }
