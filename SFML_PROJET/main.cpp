@@ -549,7 +549,7 @@ int main() {
             }
             else {
                 // R?initialiser la couleur du texte
-                game.playButton->setFillColor(sf::Color(0, 100, 0));
+                game.playButton->setFillColor(sf::Color::Yellow);
             }
             game.menuScreen(window);
         }
