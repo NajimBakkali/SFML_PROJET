@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.11.35431.28
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.35325.158
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SFML_PROJET", "SFML_PROJET\SFML_PROJET.vcxproj", "{3FFBFE96-6095-4311-8BD7-46A8E12620F0}"
 EndProject
