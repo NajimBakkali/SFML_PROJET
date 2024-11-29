@@ -1,4 +1,4 @@
-#include <SFML/Graphics.hpp>
+﻿#include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
 #include <thread>
@@ -475,8 +475,8 @@ public:
 int main() {
     srand(time(NULL)); //set seed
 
-    // Cr?ation de la fen?tre
-    sf::RenderWindow window(sf::VideoMode(CELL_SIZE * CELL_COUNT, CELL_SIZE * CELL_COUNT), "Fen?tre SFML");
+    // Cr�ation de la fen�tre
+    sf::RenderWindow window(sf::VideoMode(CELL_SIZE * CELL_COUNT, CELL_SIZE * CELL_COUNT), "ROBO-SNAKE");
 
     Game game;
     loadSprites();
@@ -493,7 +493,7 @@ int main() {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
-                window.close(); // Fermer la fen?tre
+                window.close(); // Fermer la fen�tre
 
             if (event.type == sf::Event::KeyPressed && !game.onMenu && !moveOnCooldown) {
                 switch (event.key.code) {
@@ -548,7 +548,7 @@ int main() {
                 game.playButton->setFillColor(sf::Color::Green);
             }
             else {
-                // R?initialiser la couleur du texte
+                // R�initialiser la couleur du texte
                 game.playButton->setFillColor(sf::Color::Yellow);
             }
             game.menuScreen(window);
